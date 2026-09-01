@@ -1,0 +1,11 @@
+attack_family,configuration_code,ranking_metric,available
+node_removal,random,random,True
+node_removal,weighted_slack,weighted_slack,True
+node_removal,out_strength,out_strength,True
+node_redistribution,random,random,True
+node_redistribution,weighted_slack,weighted_slack,True
+node_redistribution,out_strength,out_strength,True
+edge_weakening,random_edge,random_edge,True
+edge_weakening,weighted_edge_betweenness,weighted_edge_betweenness,True
+edge_weakening_random_subset,fixed_random_subset,random_fixed_10pct,True
+edge_weakening_random_subset,fixed_betweenness_subset,weighted_edge_betweenness_fixed_10pct,True

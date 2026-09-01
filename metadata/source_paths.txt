@@ -1,0 +1,19 @@
+NETWORK ROBUSTNESS APP BUNDLE
+Generated: 2026-09-01T09:00:19.778567
+
+Source run:
+/content/drive/MyDrive/lfr_attack_outputs_high_transition/run_20260814_055017_969909
+
+Source visual library:
+/content/drive/MyDrive/lfr_attack_outputs_high_transition/run_20260814_055017_969909/FINAL_VISUALS_40RUNS
+
+Source ANOVA folder:
+/content/drive/MyDrive/lfr_attack_outputs_high_transition/run_20260814_055017_969909/ANOVA_across_modularity
+
+Primary outcome:
+weighted_directed_community_assortativity
+
+Experiment:
+7 modularity configurations
+40 independent realizations/configuration
+280 matched LFR–NULL pairs
