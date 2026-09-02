@@ -14,6 +14,36 @@ from app.components import (
 
 
 # ============================================================
+# OPTIONAL METHODS-PAGE VISUAL ASSETS
+# ============================================================
+
+METHOD_ASSETS_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "assets"
+    / "methods"
+)
+
+
+def _show_method_asset(filename, caption=None):
+    """
+    Show an optional explanatory asset used by the Methods & metrics page.
+
+    Assets live outside visuals/ so they are not mixed into the generated
+    scientific-figure index used by the Results/Heatmap pages.
+    """
+    path = METHOD_ASSETS_DIR / filename
+
+    if not path.exists():
+        st.info(
+            f"Optional methods visual not found yet: "
+            f"`assets/methods/{filename}`"
+        )
+        return
+
+    show_asset(path, caption=caption)
+
+
+# ============================================================
 # SMALL EXPLANATION HELPERS
 # ============================================================
 
@@ -635,6 +665,29 @@ def page_methods(data, visual_index):
             community structure actually generated rather than only the input
             parameter.
             """
+        )
+
+
+        st.markdown("### Example edge-weight structure")
+        st.markdown(
+            """
+            Because the experiment is weighted, it is useful to inspect the
+            distribution of the LFR edge weights themselves. The left panel
+            shows the original edge-weight distribution; the right panel shows
+            the same weights after the transformation `log(1 + weight)`.
+
+            This figure is **descriptive**: it illustrates the kind of weighted
+            heterogeneity present in one representative LFR realization. It is
+            not an inferential result and does not replace the 40-run analysis.
+            """
+        )
+
+        _show_method_asset(
+            "edge_weight_distribution.png",
+            caption=(
+                "Representative official weighted-directed LFR edge-weight "
+                "distribution and log-transformed view."
+            ),
         )
 
         with st.expander("Why do some descriptive dashboard plots show only three rows?"):
@@ -1528,6 +1581,101 @@ def page_methods(data, visual_index):
         )
         show_table(attack_table, height=330)
 
+
+        st.subheader("Illustrative attacks in action")
+        st.markdown(
+            """
+            These GIFs are **method illustrations**, not inferential summaries.
+            They show one strong-community example (`μ = 0.075`) so that the
+            perturbation itself can be inspected directly.
+
+            Unlike the dedicated attack-mechanism figures elsewhere in the app,
+            these animations do **not** force the NULL nodes into separated
+            community clusters. This makes the rewired NULL topology visually
+            explicit.
+
+            Select an attack below. The LFR realization is shown on the left and
+            its corresponding NULL example on the right.
+            """
+        )
+
+        method_attack_gifs = {
+            "Node removal": (
+                "01_mu_0p075_node_removal_lfr.gif",
+                "02_mu_0p075_node_removal_null.gif",
+            ),
+            "Node redistribution": (
+                "03_mu_0p075_node_redistribution_lfr.gif",
+                "04_mu_0p075_node_redistribution_null.gif",
+            ),
+            "Progressive edge weakening": (
+                "05_mu_0p075_edge_weakening_lfr.gif",
+                "06_mu_0p075_edge_weakening_null.gif",
+            ),
+            "Fixed random 25% subset deterioration": (
+                "07_mu_0p075_edge_weakening_random_subset_lfr.gif",
+                "08_mu_0p075_edge_weakening_random_subset_null.gif",
+            ),
+        }
+
+        attack_demo = st.selectbox(
+            "Illustrative attack",
+            list(method_attack_gifs.keys()),
+            key="methods_attack_demo",
+        )
+
+        lfr_gif, null_gif = method_attack_gifs[attack_demo]
+        gif_left, gif_right = st.columns(2)
+
+        with gif_left:
+            st.markdown("#### LFR")
+            _show_method_asset(
+                lfr_gif,
+                caption=f"{attack_demo} — representative LFR realization.",
+            )
+
+        with gif_right:
+            st.markdown("#### Matched NULL")
+            _show_method_asset(
+                null_gif,
+                caption=f"{attack_demo} — corresponding NULL illustration.",
+            )
+
+        st.caption(
+            "These animations explain the mechanics of the attack. Formal "
+            "conclusions come from all 40 independent realizations per "
+            "modularity regime and the paired/ANOVA analyses."
+        )
+
+        with st.expander("Optional static attack snapshots"):
+            st.markdown(
+                """
+                Static snapshots are useful when you want to inspect one attack
+                state carefully or use a still image in a presentation. The GIFs
+                remain the primary method illustration because they show the
+                complete perturbation process.
+                """
+            )
+
+            static_left, static_right = st.columns(2)
+
+            with static_left:
+                st.markdown("**Node removal snapshot**")
+                _show_method_asset(
+                    "node_removal_static.png",
+                    caption="Representative static node-removal state.",
+                )
+
+            with static_right:
+                st.markdown("**Fixed-subset deterioration snapshot**")
+                _show_method_asset(
+                    "fixed_random_subset_static.png",
+                    caption=(
+                        "Representative fixed random 25% edge-subset "
+                        "deterioration state."
+                    ),
+                )
+
     # ========================================================
     # TAB 4 — NULL MODEL
     # ========================================================
@@ -1585,6 +1733,47 @@ def page_methods(data, visual_index):
             targets approximately `10 × |E|` accepted directed swaps, subject to
             a larger maximum-attempt budget.
             """
+        )
+
+
+        st.markdown("### Visualizing what the NULL construction changes")
+        st.markdown(
+            """
+            The next two figures are particularly important for interpreting the
+            NULL correctly.
+
+            **First figure:** the same planted community colors are retained on
+            both sides. The LFR topology visibly respects those communities,
+            whereas the degree-preserving rewiring creates many cross-community
+            connections in the NULL.
+
+            **Second figure:** a labeled subset makes the matching explicit:
+            the same node IDs and the same planted community labels are present
+            in both graphs, but their edge relationships have changed.
+
+            This also explains why some attack animations can be misleading if
+            the same community-separated coordinates are imposed on LFR and
+            NULL: node positions are only a visualization choice. The **edges**
+            determine whether the topology actually respects the planted
+            communities.
+            """
+        )
+
+        _show_method_asset(
+            "null_community_structure.png",
+            caption=(
+                "Official directed weighted LFR versus its degree-preserving "
+                "NULL. Node colors retain the planted labels; rewiring disrupts "
+                "the original community-organized edge structure."
+            ),
+        )
+
+        _show_method_asset(
+            "lfr_null_labeled_sample.png",
+            caption=(
+                "Labeled LFR/NULL sample: same node IDs and planted community "
+                "labels, different rewired edge topology."
+            ),
         )
 
         st.info(
