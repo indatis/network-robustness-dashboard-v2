@@ -1288,6 +1288,39 @@ def page_methods(data, visual_index):
                 "NULL share the same node set."
             )
 
+
+            st.markdown("#### Illustrative node-removal animation")
+            st.markdown(
+                """
+                The two animations below show the **same attack family** on a
+                representative strong-community LFR realization and its matched
+                NULL. They are method illustrations only; formal inference uses
+                all 40 realizations per modularity regime.
+                """
+            )
+
+            node_gif_lfr, node_gif_null = st.columns(2)
+
+            with node_gif_lfr:
+                st.markdown("**LFR**")
+                _show_method_asset(
+                    "01_mu_0p075_node_removal_lfr.gif",
+                    caption="Progressive node removal — representative LFR.",
+                )
+
+            with node_gif_null:
+                st.markdown("**Matched NULL**")
+                _show_method_asset(
+                    "02_mu_0p075_node_removal_null.gif",
+                    caption="Progressive node removal — matched NULL.",
+                )
+
+            with st.expander("Show optional static node-removal snapshot"):
+                _show_method_asset(
+                    "node_removal_static.png",
+                    caption="Representative static node-removal state.",
+                )
+
         # ----------------------------------------------------
         # Redistribution
         # ----------------------------------------------------
@@ -1337,6 +1370,31 @@ def page_methods(data, visual_index):
                 redistribution.
                 """
             )
+
+
+            st.markdown("#### Illustrative redistribution animation")
+            st.markdown(
+                """
+                Compare the LFR and NULL while the same type of node loss is
+                accompanied by proportional reallocation of lost outgoing flow.
+                """
+            )
+
+            red_gif_lfr, red_gif_null = st.columns(2)
+
+            with red_gif_lfr:
+                st.markdown("**LFR**")
+                _show_method_asset(
+                    "03_mu_0p075_node_redistribution_lfr.gif",
+                    caption="Node removal with proportional redistribution — LFR.",
+                )
+
+            with red_gif_null:
+                st.markdown("**Matched NULL**")
+                _show_method_asset(
+                    "04_mu_0p075_node_redistribution_null.gif",
+                    caption="Node removal with proportional redistribution — NULL.",
+                )
 
         # ----------------------------------------------------
         # Betweenness ranking
@@ -1430,6 +1488,31 @@ def page_methods(data, visual_index):
                 """
             )
 
+
+            st.markdown("#### Illustrative progressive edge-weakening animation")
+            st.markdown(
+                """
+                These animations show progressively larger fractions of the edge
+                set being weakened in the representative LFR and matched NULL.
+                """
+            )
+
+            edge_gif_lfr, edge_gif_null = st.columns(2)
+
+            with edge_gif_lfr:
+                st.markdown("**LFR**")
+                _show_method_asset(
+                    "05_mu_0p075_edge_weakening_lfr.gif",
+                    caption="Progressive edge weakening — representative LFR.",
+                )
+
+            with edge_gif_null:
+                st.markdown("**Matched NULL**")
+                _show_method_asset(
+                    "06_mu_0p075_edge_weakening_null.gif",
+                    caption="Progressive edge weakening — matched NULL.",
+                )
+
         # ----------------------------------------------------
         # Fixed subset
         # ----------------------------------------------------
@@ -1474,6 +1557,41 @@ def page_methods(data, visual_index):
                 is **0.25 = 25%**.
                 """
             )
+
+
+            st.markdown("#### Illustrative fixed-subset deterioration animation")
+            st.markdown(
+                """
+                Here the **selected edge identities remain fixed** while their
+                weights are progressively reduced. The GIFs below use the fixed
+                random 25% subset example.
+                """
+            )
+
+            fixed_gif_lfr, fixed_gif_null = st.columns(2)
+
+            with fixed_gif_lfr:
+                st.markdown("**LFR**")
+                _show_method_asset(
+                    "07_mu_0p075_edge_weakening_random_subset_lfr.gif",
+                    caption="Fixed random 25% subset deterioration — LFR.",
+                )
+
+            with fixed_gif_null:
+                st.markdown("**Matched NULL**")
+                _show_method_asset(
+                    "08_mu_0p075_edge_weakening_random_subset_null.gif",
+                    caption="Fixed random 25% subset deterioration — NULL.",
+                )
+
+            with st.expander("Show optional static fixed-subset snapshot"):
+                _show_method_asset(
+                    "fixed_random_subset_static.png",
+                    caption=(
+                        "Representative fixed random 25% edge-subset "
+                        "deterioration state."
+                    ),
+                )
 
         # ----------------------------------------------------
         # Spectral ranking formulas
@@ -1582,99 +1700,6 @@ def page_methods(data, visual_index):
         show_table(attack_table, height=330)
 
 
-        st.subheader("Illustrative attacks in action")
-        st.markdown(
-            """
-            These GIFs are **method illustrations**, not inferential summaries.
-            They show one strong-community example (`μ = 0.075`) so that the
-            perturbation itself can be inspected directly.
-
-            Unlike the dedicated attack-mechanism figures elsewhere in the app,
-            these animations do **not** force the NULL nodes into separated
-            community clusters. This makes the rewired NULL topology visually
-            explicit.
-
-            Select an attack below. The LFR realization is shown on the left and
-            its corresponding NULL example on the right.
-            """
-        )
-
-        method_attack_gifs = {
-            "Node removal": (
-                "01_mu_0p075_node_removal_lfr.gif",
-                "02_mu_0p075_node_removal_null.gif",
-            ),
-            "Node redistribution": (
-                "03_mu_0p075_node_redistribution_lfr.gif",
-                "04_mu_0p075_node_redistribution_null.gif",
-            ),
-            "Progressive edge weakening": (
-                "05_mu_0p075_edge_weakening_lfr.gif",
-                "06_mu_0p075_edge_weakening_null.gif",
-            ),
-            "Fixed random 25% subset deterioration": (
-                "07_mu_0p075_edge_weakening_random_subset_lfr.gif",
-                "08_mu_0p075_edge_weakening_random_subset_null.gif",
-            ),
-        }
-
-        attack_demo = st.selectbox(
-            "Illustrative attack",
-            list(method_attack_gifs.keys()),
-            key="methods_attack_demo",
-        )
-
-        lfr_gif, null_gif = method_attack_gifs[attack_demo]
-        gif_left, gif_right = st.columns(2)
-
-        with gif_left:
-            st.markdown("#### LFR")
-            _show_method_asset(
-                lfr_gif,
-                caption=f"{attack_demo} — representative LFR realization.",
-            )
-
-        with gif_right:
-            st.markdown("#### Matched NULL")
-            _show_method_asset(
-                null_gif,
-                caption=f"{attack_demo} — corresponding NULL illustration.",
-            )
-
-        st.caption(
-            "These animations explain the mechanics of the attack. Formal "
-            "conclusions come from all 40 independent realizations per "
-            "modularity regime and the paired/ANOVA analyses."
-        )
-
-        with st.expander("Optional static attack snapshots"):
-            st.markdown(
-                """
-                Static snapshots are useful when you want to inspect one attack
-                state carefully or use a still image in a presentation. The GIFs
-                remain the primary method illustration because they show the
-                complete perturbation process.
-                """
-            )
-
-            static_left, static_right = st.columns(2)
-
-            with static_left:
-                st.markdown("**Node removal snapshot**")
-                _show_method_asset(
-                    "node_removal_static.png",
-                    caption="Representative static node-removal state.",
-                )
-
-            with static_right:
-                st.markdown("**Fixed-subset deterioration snapshot**")
-                _show_method_asset(
-                    "fixed_random_subset_static.png",
-                    caption=(
-                        "Representative fixed random 25% edge-subset "
-                        "deterioration state."
-                    ),
-                )
 
     # ========================================================
     # TAB 4 — NULL MODEL
