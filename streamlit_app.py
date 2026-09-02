@@ -5,6 +5,7 @@ from app.config import APP_TITLE, APP_SUBTITLE, ROOT_DIR
 from app.data_loader import load_app_data, build_visual_index
 from app.pages import (
     page_overview,
+    page_methods,
     page_results_explorer,
     page_paired_tests,
     page_modularity,
@@ -32,6 +33,7 @@ with st.sidebar:
         "Section",
         [
             "Overview",
+            "Methods & metrics",
             "Results explorer",
             "LFR vs NULL robustness",
             "Modularity effects",
@@ -49,6 +51,8 @@ with st.sidebar:
 
 if section == "Overview":
     page_overview(data, visual_index)
+elif section == "Methods & metrics":
+    page_methods(data, visual_index)
 elif section == "Results explorer":
     page_results_explorer(data, visual_index)
 elif section == "LFR vs NULL robustness":
