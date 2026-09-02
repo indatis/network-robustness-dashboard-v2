@@ -512,7 +512,7 @@ def page_methods(data, visual_index):
     st.header("Methods & metric guide")
     st.caption(
         "A compact reference for the network generator, matched NULL, "
-        "outcome variables, attacks, rankings, and inferential workflow."
+        "outcome variables, attacks, rankings, formulas, and inferential workflow."
     )
 
     st.info(
@@ -527,12 +527,6 @@ def page_methods(data, visual_index):
     # --------------------------------------------------------
     st.subheader("Analysis workflow")
 
-    st.markdown(
-        """
-        The full experiment can be read as one sequence:
-        """
-    )
-
     step_titles = [
         "1. Generate",
         "2. Match",
@@ -542,16 +536,16 @@ def page_methods(data, visual_index):
         "6. Infer",
     ]
     step_text = [
-        "Weighted-directed LFR network",
+        "Weighted-directed LFR",
         "Degree-preserving NULL",
         "Node / edge attack",
-        "Compute Y(x) at each step",
+        "Compute Y(x)",
         "Trajectory → AUC",
         "Paired tests + ANOVA",
     ]
 
     cols = st.columns(6)
-    for col, title, text in zip(cols, step_titles, step_text):
+    for col, title, body in zip(cols, step_titles, step_text):
         with col:
             st.markdown(
                 f"""
@@ -562,7 +556,7 @@ def page_methods(data, visual_index):
                     min-height:115px;
                     text-align:center;">
                     <b>{title}</b><br><br>
-                    <span style="font-size:0.92rem;">{text}</span>
+                    <span style="font-size:0.92rem;">{body}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -570,15 +564,12 @@ def page_methods(data, visual_index):
 
     st.markdown(
         """
-        **Interpretation:** first create a structured network and its matched
-        control, expose both to controlled perturbations, track network outcomes
-        across attack intensity, reduce each trajectory to one robustness AUC per
-        realization, and then answer two complementary questions:
+        The workflow answers two complementary questions:
 
-        - **LFR vs NULL:** does organized community structure make the network
-          more or less robust than its matched control?
-        - **Across modularity:** does robustness change as the LFR community
-          structure becomes weaker or stronger?
+        - **LFR vs NULL:** does the organized LFR architecture make the network
+          more or less robust than its matched structural control?
+        - **Across modularity:** does robustness change as the strength of the
+          LFR community structure changes?
         """
     )
 
@@ -626,48 +617,39 @@ def page_methods(data, visual_index):
         show_table(design_table, height=390)
 
         st.warning(
-            "**Do not confuse the 5 random repetitions with independent sample "
-            "size.** They repeat stochastic attack orders inside the same network "
-            "realization and are averaged before inference. The independent units "
-            "are the 40 LFR realizations per modularity configuration."
+            "**The 5 random repetitions are not five additional independent "
+            "samples.** They repeat stochastic attack orders inside the same "
+            "network realization and are averaged before inference. The "
+            "independent units are the 40 LFR realizations per modularity "
+            "configuration."
         )
 
-        st.markdown(
-            """
-            ### Mixing parameter versus realized modularity
-
-            The LFR input mixing parameter and realized modularity move in
-            opposite directions:
-            """
-        )
-
+        st.markdown("### Mixing parameter versus realized modularity")
         st.latex(r"\mu \downarrow \quad \Longrightarrow \quad Q_w \uparrow")
 
         st.markdown(
             """
-            Therefore `μ = 0.075` represents the strongest community structure
-            in the active transition, while `μ = 0.300` represents the weakest.
-
-            The dashboard plots often use **realized weighted modularity `Qw`**
-            on the x-axis because it describes the structure actually generated,
-            rather than only the requested generator parameter.
+            Thus `μ = 0.075` is the strongest-community regime in the active
+            transition and `μ = 0.300` is the weakest. The dashboard often uses
+            **realized weighted modularity `Qw`** because it reports the
+            community structure actually generated rather than only the input
+            parameter.
             """
         )
 
         with st.expander("Why do some descriptive dashboard plots show only three rows?"):
             st.markdown(
                 """
-                Some descriptive trajectory panels display only three
-                representative regimes to remain readable:
+                Some trajectory panels show three representative regimes for
+                readability:
 
-                - **weak structure:** μ = 0.300, Qw ≈ 0.460
-                - **intermediate structure:** μ = 0.150, Qw ≈ 0.620
-                - **strong structure:** μ = 0.075, Qw ≈ 0.690
+                - **weak:** μ = 0.300, Qw ≈ 0.460
+                - **intermediate:** μ = 0.150, Qw ≈ 0.620
+                - **strong:** μ = 0.075, Qw ≈ 0.690
 
-                Those figures are illustrative summaries. The paired tests and
-                across-modularity ANOVA use **all seven modularity
-                configurations and all 40 independent realizations per
-                configuration**.
+                These are descriptive summaries. The paired tests and
+                across-modularity ANOVA use **all seven regimes and all 40
+                independent realizations per regime**.
                 """
             )
 
@@ -676,407 +658,835 @@ def page_methods(data, visual_index):
     # ========================================================
     with tab_outcomes:
         st.subheader("Outcome variables Y")
-
         st.markdown(
             """
-            At every perturbation state the notebook computes a collection of
-            structural outcomes, denoted generically by `Y(x)`. Each outcome
-            captures a different aspect of network robustness.
+            At each perturbation state the notebook computes a set of network
+            outcomes, written generically as `Y(x)`. The formulas below are the
+            formulas actually implemented in the simulation, followed by an
+            explanation of every symbol.
             """
         )
 
+        # ----------------------------------------------------
+        # Unweighted community assortativity
+        # ----------------------------------------------------
+        with st.expander("Unweighted community assortativity"):
+            st.markdown(
+                """
+                **Question:** do directed edges remain preferentially inside the
+                same community?
+
+                Define the directed mixing matrix:
+                """
+            )
+            st.latex(
+                r"e_{gh}="
+                r"\frac{1}{m}"
+                r"\sum_{(u,v)\in E}"
+                r"\mathbf{1}\{c_u=g,\;c_v=h\}"
+            )
+            st.latex(
+                r"a_g=\sum_h e_{gh},"
+                r"\qquad"
+                r"b_g=\sum_h e_{hg}"
+            )
+            st.latex(
+                r"r="
+                r"\frac{\operatorname{Tr}(e)-\sum_g a_g b_g}"
+                r"{1-\sum_g a_g b_g}"
+            )
+
+            st.markdown(
+                """
+                **Components**
+
+                - `m` = number of directed edges.
+                - `c_u`, `c_v` = community labels of source `u` and target `v`.
+                - `e_gh` = fraction of directed edges from community `g` to
+                  community `h`.
+                - `a_g` = fraction of edges originating from community `g`.
+                - `b_g` = fraction of edges arriving at community `g`.
+                - `Tr(e)` = fraction of edges whose source and target are in the
+                  same community.
+                - `r` = categorical community assortativity.
+
+                **Interpretation**
+
+                - `r > 0` → more within-community edges than expected.
+                - `r ≈ 0` → no clear categorical mixing preference.
+                - `r < 0` → relatively more between-community edges.
+
+                This version is **unweighted**. Weakening an existing edge
+                without deleting it does not change the edge-count mixing matrix.
+
+                **Reference:** Newman, M. E. J. (2003), *Mixing patterns in
+                networks*. The notebook evaluates this formula through
+                NetworkX's categorical attribute-assortativity implementation.
+                """
+            )
+
+        # ----------------------------------------------------
+        # Weighted directed community assortativity
+        # ----------------------------------------------------
         with st.expander(
             "Weighted-directed community assortativity — PRIMARY",
             expanded=True,
         ):
             st.markdown(
                 """
-                **Question:** Does the network's **total directed edge weight**
-                remain preferentially inside communities?
+                **Question:** does the **total directed edge weight** remain
+                preferentially inside communities?
 
-                For each edge `u → v`, its weight is added to a
-                source-community → target-community mixing matrix. The
-                assortativity coefficient compares observed within-community
-                weighted flow with the amount expected from the source and
-                target community marginals.
+                First construct a weighted community mixing matrix:
+                """
+            )
+            st.latex(
+                r"M_{gh}="
+                r"\sum_{(u,v)\in E}"
+                r"w_{uv}\,"
+                r"\mathbf{1}\{c_u=g,\;c_v=h\}"
+            )
+            st.latex(
+                r"W=\sum_{(u,v)\in E}w_{uv},"
+                r"\qquad"
+                r"e_{gh}=\frac{M_{gh}}{W}"
+            )
+            st.latex(
+                r"a_g=\sum_h e_{gh},"
+                r"\qquad"
+                r"b_g=\sum_h e_{hg}"
+            )
+            st.latex(
+                r"r_w="
+                r"\frac{\operatorname{Tr}(e)-\sum_g a_g b_g}"
+                r"{1-\sum_g a_g b_g}"
+            )
+
+            st.markdown(
+                """
+                **Components**
+
+                - `w_uv` = weight of directed edge `u → v`.
+                - `M_gh` = total weight flowing from source community `g` to
+                  target community `h`.
+                - `W` = total positive edge weight in the graph.
+                - `e_gh` = normalized fraction of total weight flowing `g → h`.
+                - `a_g` = fraction of total weight originating from community
+                  `g`.
+                - `b_g` = fraction of total weight arriving at community `g`.
+                - `Tr(e)` = observed fraction of total weight remaining inside
+                  the same community.
+                - `r_w` = weighted-directed categorical assortativity.
 
                 **Interpretation**
 
-                - positive → more total weight remains within communities than
-                  expected;
+                - positive → more total weight remains inside communities than
+                  expected from the source/target marginals;
                 - near zero → little weighted community preference;
-                - negative → relatively more weight flows between communities.
+                - negative → relatively more weight crosses between communities.
 
-                **Why this is the primary outcome:** the experiment is explicitly
-                weighted and directed, and the research question concerns
-                preservation/disruption of modular organization. This measure
-                therefore uses all three ingredients: **direction, weight, and
-                community membership**.
+                **Why primary?** It directly combines the three ingredients of
+                the experiment: **direction, edge weight, and community
+                membership**.
 
-                The primary version uses the **known planted LFR communities**.
+                **Reference:** Newman (2003), *Mixing patterns in networks*.
+                The notebook explicitly adapts Newman's categorical
+                mixing-matrix formula by replacing edge counts with normalized
+                edge-weight flows.
                 """
             )
 
-        with st.expander("Unweighted community assortativity"):
-            st.markdown(
-                """
-                **Question:** Do directed edges connect nodes in the same
-                community more often than expected?
-
-                This version uses the existence of edges and their community
-                labels but **ignores edge weights**.
-
-                - positive → assortative community mixing;
-                - near zero → no clear community mixing preference;
-                - negative → relatively more between-community connections.
-
-                **Important consequence:** weakening an edge without deleting it
-                does not change this unweighted measure, because the topology is
-                unchanged. Node removal can change it because nodes and edges
-                disappear.
-                """
-            )
-
+        # ----------------------------------------------------
+        # Dynamic Louvain
+        # ----------------------------------------------------
         with st.expander("Dynamic weighted-Louvain community outcomes"):
             st.markdown(
                 """
-                Two additional community outcomes repeat the unweighted and
-                weighted-directed assortativity calculations using a
-                **weighted Louvain partition re-detected at every perturbation
-                state**.
+                The two dynamic-Louvain outcomes use the **same assortativity
+                formulas shown above**, but replace the fixed planted labels
+                `c_i` with a partition re-detected on the current perturbed
+                graph:
+                """
+            )
+            st.latex(r"c_i \quad \longrightarrow \quad c_i(x)")
+            st.markdown(
+                """
+                where `c_i(x)` is the weighted-Louvain community assigned to node
+                `i` at perturbation state `x`.
 
-                This answers a different question:
+                Louvain is run **once per graph state**, and that same partition
+                is reused for both dynamic community-assortativity outcomes.
 
-                > If communities are allowed to reorganize after damage, does
-                > the observed community-mixing pattern remain robust?
+                **Interpretation:** planted-community outcomes measure survival
+                of the known original benchmark structure; dynamic-Louvain
+                outcomes measure the residual/adaptive community organization
+                after the graph is allowed to repartition.
 
-                The planted-community outcomes keep the original benchmark
-                partition fixed. The dynamic-Louvain outcomes allow the
-                partition to adapt. Louvain is run once per graph state and the
-                same detected partition is reused for both dynamic community
-                outcomes.
-
-                In this dashboard, planted weighted-directed assortativity is
-                the primary benchmark outcome; dynamic Louvain is a
-                sensitivity/secondary analysis.
+                **Reference for the Louvain method:** Blondel, Guillaume,
+                Lambiotte & Lefebvre (2008), *Fast unfolding of communities in
+                large networks*.
                 """
             )
 
+        # ----------------------------------------------------
+        # Yuan assortativity
+        # ----------------------------------------------------
         with st.expander("Yuan out–in strength assortativity"):
             st.markdown(
                 """
-                **Question:** Do nodes that send a large total weight tend to
+                **Question:** do nodes that send a large total weight tend to
                 connect to nodes that receive a large total weight?
 
-                For each directed edge `u → v`:
+                For each edge `u → v`, define source out-strength and target
+                in-strength:
+                """
+            )
+            st.latex(
+                r"s_u^{out}=\sum_j w_{uj},"
+                r"\qquad"
+                r"s_v^{in}=\sum_i w_{iv}"
+            )
+            st.markdown("For the edge-level weighted correlation:")
+            st.latex(
+                r"x_{uv}=s_u^{out},"
+                r"\qquad"
+                r"y_{uv}=s_v^{in},"
+                r"\qquad"
+                r"W=\sum_{(u,v)\in E}w_{uv}"
+            )
+            st.latex(
+                r"\bar{x}="
+                r"\frac{\sum_{(u,v)}w_{uv}x_{uv}}{W},"
+                r"\qquad"
+                r"\bar{y}="
+                r"\frac{\sum_{(u,v)}w_{uv}y_{uv}}{W}"
+            )
+            st.latex(
+                r"\sigma_x="
+                r"\sqrt{\frac{\sum_{(u,v)}w_{uv}(x_{uv}-\bar{x})^2}{W}},"
+                r"\qquad"
+                r"\sigma_y="
+                r"\sqrt{\frac{\sum_{(u,v)}w_{uv}(y_{uv}-\bar{y})^2}{W}}"
+            )
+            st.latex(
+                r"\rho_{out,in}="
+                r"\frac{\sum_{(u,v)}"
+                r"w_{uv}(x_{uv}-\bar{x})(y_{uv}-\bar{y})}"
+                r"{W\,\sigma_x\sigma_y}"
+            )
 
-                - source feature = out-strength of `u`;
-                - target feature = in-strength of `v`;
-                - observation weight = edge weight `w_uv`.
+            st.markdown(
+                """
+                **Components**
 
-                The final coefficient is a **weighted Pearson correlation**.
+                - `s_u^out` = total weight sent by source node `u`.
+                - `s_v^in` = total weight received by target node `v`.
+                - `x_uv`, `y_uv` = source and target strength features attached
+                  to edge `u → v`.
+                - `w_uv` = weight of that edge and therefore the observation
+                  weight in the correlation.
+                - `W` = total edge weight.
+                - `x̄`, `ȳ` = weighted means.
+                - `σ_x`, `σ_y` = weighted standard deviations.
+                - `ρ_out,in` = weighted Pearson correlation.
+
+                **Interpretation**
 
                 - positive → strong senders tend to connect to strong receivers;
-                - near zero → no clear linear strength association;
-                - negative → strong senders tend to connect to weak receivers
-                  (or vice versa).
+                - near zero → little linear strength association;
+                - negative → strong senders tend to connect to weaker receivers,
+                  or vice versa.
 
-                This is a numeric strength-assortativity measure and is
-                conceptually different from categorical community assortativity.
+                **Reference:** Yuan, Y., Yan, J. & Zhang, P. (2021),
+                *Assortativity Measures for Weighted and Directed Networks*,
+                Section 2, Equations (1)–(2). The notebook notes that the Python
+                implementation was checked against the corresponding `wdnet`
+                implementation.
                 """
             )
 
+        # ----------------------------------------------------
+        # GSCC
+        # ----------------------------------------------------
         with st.expander("GSCC ratio"):
             st.markdown(
                 """
                 **GSCC = Giant Strongly Connected Component.**
 
-                In a directed strongly connected component, every node can reach
-                every other node by following directed paths.
+                Let `C_max(G_x)` be the largest strongly connected component of
+                the current graph and `n₀` the number of nodes in the original
+                unperturbed graph:
+                """
+            )
+            st.latex(
+                r"\mathrm{GSCC}(x)="
+                r"\frac{|C_{\max}(G_x)|}{n_0}"
+            )
+            st.markdown(
+                """
+                **Components**
 
-                The metric is:
+                - `G_x` = graph after attack intensity `x`.
+                - `C_max(G_x)` = largest set in which every node can reach every
+                  other node following directed paths.
+                - `n₀` = original number of nodes, kept fixed across the attack.
 
-                `size of largest strongly connected component / original number of nodes`
+                **Interpretation:** 1 means the full original node set remains in
+                one mutually reachable directed core; values approaching zero
+                indicate directed fragmentation.
 
-                - 1 → all original nodes belong to one mutually reachable core;
-                - 0.5 → the largest strongly connected core contains half of the
-                  original nodes;
-                - near 0 → strong directed fragmentation.
-
-                The denominator always uses the original network size, so node
-                loss cannot make the ratio look artificially healthy.
+                **Implementation note:** computed with NetworkX strongly
+                connected components. The simulation notebook does not cite a
+                separate methodological paper for this diagnostic.
                 """
             )
 
+        # ----------------------------------------------------
+        # Reachability
+        # ----------------------------------------------------
         with st.expander("Directed reachability ratio"):
             st.markdown(
                 """
-                **Question:** Among all possible ordered pairs of original
-                nodes, what proportion can still communicate through at least
-                one directed path?
+                For every ordered pair of distinct original nodes, define an
+                indicator equal to 1 if a directed path currently exists:
+                """
+            )
+            st.latex(
+                r"R(x)="
+                r"\frac{1}{n_0(n_0-1)}"
+                r"\sum_{u\ne v}"
+                r"\mathbf{1}\{u\rightsquigarrow v\text{ in }G_x\}"
+            )
+            st.markdown(
+                """
+                **Components**
 
-                The denominator is fixed at `n₀(n₀−1)`.
+                - `u ↝ v` = at least one directed path from `u` to `v`.
+                - `n₀(n₀−1)` = all possible ordered source-target pairs in the
+                  original network.
+                - removed or unreachable nodes/pairs contribute zero.
 
-                - 1 → every ordered pair is reachable;
-                - 0.5 → half remain reachable;
-                - 0 → no ordered pair remains reachable.
+                **Interpretation:** 1 means every original ordered pair remains
+                reachable; 0.5 means half remain reachable.
 
-                Unlike GSCC ratio, reachability counts all reachable ordered
-                pairs and therefore captures communication outside the single
-                largest strongly connected component as well.
+                **Implementation note:** path existence is evaluated through
+                NetworkX directed reachability. No separate methodological paper
+                is cited in the notebook for this diagnostic.
                 """
             )
 
+        # ----------------------------------------------------
+        # Weighted efficiency
+        # ----------------------------------------------------
         with st.expander("Directed weighted global efficiency"):
             st.markdown(
                 """
-                **Question:** How efficiently can nodes reach one another through
-                short, strong, directed weighted paths?
-
-                Edge strength is converted to path cost using:
+                Edge weight is first converted to an effective path cost:
                 """
             )
-            st.latex(r"d_{uv}=\frac{1}{w_{uv}}")
+            st.latex(r"\ell_{uv}=\frac{1}{w_{uv}}")
             st.markdown(
                 """
-                A stronger edge therefore acts as a shorter effective distance.
-
-                For each reachable ordered pair, the contribution is the inverse
-                of its shortest-path distance. Unreachable pairs contribute zero,
-                and the denominator remains `n₀(n₀−1)`.
-
-                - larger efficiency → short/strong directed routes remain;
-                - smaller efficiency → routes are weaker, longer, lost, or
-                  unreachable.
-
-                Because weighted path distances can be below 1, this weighted
-                efficiency is **not necessarily bounded by 1**.
+                Let `d_x(u,v)` be the shortest directed path length computed from
+                those costs. Then:
                 """
             )
-
-        with st.expander("Spectral κ (generalized algebraic connectivity)"):
+            st.latex(
+                r"E_w(x)="
+                r"\frac{1}{n_0(n_0-1)}"
+                r"\sum_{\substack{u\ne v\\u\rightsquigarrow v}}"
+                r"\frac{1}{d_x(u,v)}"
+            )
             st.markdown(
                 """
-                **Question:** How strong is the network's weakest global
-                spectral-connectivity / synchronization-related mode?
+                **Components**
 
-                The directed Laplacian is transformed using its stationary
-                left-zero eigenvector and then symmetrized. `κ` is the
-                second-smallest eigenvalue of the resulting matrix.
+                - `w_uv` = edge strength.
+                - `ℓ_uv = 1/w_uv` = effective edge distance; stronger edges are
+                  shorter.
+                - `d_x(u,v)` = shortest weighted directed path from `u` to `v`
+                  at attack state `x`.
+                - unreachable pairs contribute zero.
+                - `n₀(n₀−1)` remains fixed at the original network size.
 
-                - larger κ → stronger global spectral cohesion;
-                - smaller κ → stronger bottleneck / weaker cohesion;
-                - κ near zero → weak synchronization-related connectivity.
+                **Interpretation:** larger values mean short/strong directed
+                communication paths remain available; smaller values indicate
+                weaker, longer, lost, or unreachable routes.
 
-                The value is recomputed from the **complete perturbed graph** at
-                every attack step. It is not merely an edge-sensitivity
-                approximation.
+                Because `d_x(u,v)` can be smaller than 1, this weighted
+                efficiency is not necessarily bounded above by 1.
 
-                **Important:** κ is returned as undefined (`NaN`) when the
-                perturbed graph no longer satisfies the required spectral
-                feasibility conditions, especially strong connectivity.
+                **Implementation note:** the notebook uses NetworkX all-pairs
+                Dijkstra shortest-path lengths. No separate methodological paper
+                is cited there for this diagnostic.
                 """
             )
 
+        # ----------------------------------------------------
+        # Kappa
+        # ----------------------------------------------------
+        with st.expander("Spectral κ — generalized algebraic connectivity"):
+            st.markdown(
+                """
+                The notebook uses the directed weighted Laplacian:
+                """
+            )
+            st.latex(r"L=D-A")
+            st.markdown(
+                """
+                It then finds the positive normalized left zero-eigenvector:
+                """
+            )
+            st.latex(
+                r"\xi^{T}L=0,"
+                r"\qquad"
+                r"\sum_i\xi_i=1,"
+                r"\qquad"
+                r"\Xi=\operatorname{diag}(\xi)"
+            )
+            st.latex(
+                r"S=\frac{\Xi L+L^{T}\Xi}{2}"
+            )
+            st.latex(
+                r"M=\Xi^{-1/2}S\Xi^{-1/2}"
+            )
+            st.latex(
+                r"\kappa=\lambda_2(M)"
+            )
+
+            st.markdown(
+                """
+                **Components**
+
+                - `A` = directed weighted adjacency matrix.
+                - `D` = diagonal matrix associated with the directed Laplacian.
+                - `L = D − A` = directed weighted Laplacian.
+                - `ξ` = positive normalized stationary/influence vector satisfying
+                  `ξᵀL = 0`.
+                - `Ξ = diag(ξ)`.
+                - `S` = stationary-weighted symmetrization of the directed
+                  Laplacian.
+                - `M` = normalized symmetric matrix.
+                - `λ₂(M)` = second-smallest eigenvalue of `M`.
+                - `κ` = generalized algebraic connectivity.
+
+                **Interpretation:** larger κ means stronger global spectral
+                cohesion; smaller κ indicates a stronger global bottleneck.
+
+                κ is recomputed from the complete perturbed graph at every
+                attack step. It becomes undefined (`NaN`) when the graph no
+                longer satisfies the required spectral feasibility conditions,
+                especially strong connectivity.
+
+                **Reference:** Wu, X., Liu, X., Zhang, C., Chen, T. & Lu, W.
+                (2026), *Spectral Sensitivity of Directed Weighted Networks:
+                Why Weakening Edges May Trigger Synchronization*, Section 3,
+                Equation (3).
+                """
+            )
+
+        # ----------------------------------------------------
+        # Gamma
+        # ----------------------------------------------------
         with st.expander("Additional notebook outcome: spectral γ"):
             st.markdown(
                 """
-                The simulation notebook also computes `spectral_gamma`, although
-                it is not a central outcome in the current final visual library.
+                For the nonsymmetric directed Laplacian `L`, the notebook defines:
+                """
+            )
+            st.latex(
+                r"\gamma="
+                r"\min_{\substack{\lambda\in\sigma(L)\\\lambda\ne0}}"
+                r"\operatorname{Re}(\lambda)"
+            )
+            st.markdown(
+                """
+                **Components**
 
-                `γ` is the smallest non-zero real part of the directed Laplacian
-                spectrum and characterizes the slowest exponential decay mode of
-                a linear consensus process.
+                - `σ(L)` = spectrum (set of eigenvalues) of the directed
+                  Laplacian.
+                - the zero eigenvalue is excluded.
+                - `Re(λ)` = real part of an eigenvalue.
+                - `γ` = smallest nonzero real part.
 
-                - larger γ → faster spectral convergence;
-                - smaller γ → slower convergence;
-                - near zero → very slow spectral mode.
+                **Interpretation:** γ describes the slowest exponential decay
+                mode of the linear consensus dynamics used in the spectral
+                framework; larger γ corresponds to faster convergence.
 
-                Like κ, it can become undefined when the perturbed network is no
-                longer spectrally feasible.
+                **Reference:** Wu et al. (2026), Section 4.4. The notebook
+                computes γ as a full graph outcome even though it is not central
+                in the compact final visual library.
                 """
             )
 
         st.info(
-            "Remember: the robustness analysis does not assume that every Y "
-            "should always decrease under damage. Formal robustness uses the "
-            "magnitude of departure from each realization's own baseline; raw "
-            "and signed-change figures retain the direction of the response."
+            "Robustness inference uses the **magnitude of departure from each "
+            "realization's own baseline**, not an assumption that every Y must "
+            "decrease. Raw and signed-change figures preserve the direction of "
+            "the response."
         )
 
     # ========================================================
-    # TAB 3 — ATTACKS
+    # TAB 3 — ATTACKS & RANKINGS
     # ========================================================
     with tab_attacks:
         st.subheader("Attack families and ranking rules")
-
         st.markdown(
             """
-            All targeted rankings are **static**: they are calculated once on the
-            original unperturbed graph `G₀` and then kept fixed during the attack.
-            This avoids changing the attack rule at every perturbation step.
+            All rankings are **static**: they are computed once on the original
+            unperturbed graph `G₀`, and the resulting order is held fixed during
+            the attack.
             """
         )
 
+        # ----------------------------------------------------
+        # Node removal
+        # ----------------------------------------------------
         with st.expander("1. Progressive node removal", expanded=True):
             st.markdown(
                 """
-                Nodes are removed one by one according to a fixed ranking, up to
-                **80% of the original nodes**.
-
-                The final primary visual library emphasizes three rankings:
-
-                **Random**
-                - a seeded random node order;
-                - repeated 5 times within the same realization and averaged
-                  before inference.
-
-                **Out-strength**
-                - rank nodes by total outgoing edge weight;
-                - highest out-strength removed first;
-                - targets nodes that send the greatest total weight.
-
-                **Weighted Slack**
-                - for edge `i → j`, the notebook defines:
+                If the static node order is
+                `(v₁, v₂, …)`, after removing the first `k` nodes the current
+                graph is:
                 """
             )
             st.latex(
-                r"\mathrm{Slack}_{ij}"
-                r"="
+                r"G_k="
+                r"G_0\left[V\setminus\{v_1,\ldots,v_k\}\right]"
+            )
+            st.latex(
+                r"f_k=\frac{k}{n_0}"
+            )
+            st.markdown(
+                """
+                where `f_k` is the fraction of original nodes removed. The
+                experiment continues up to `f = 0.80`.
+
+                The final primary visual library emphasizes three node rankings.
+                """
+            )
+
+            st.markdown("#### Random ranking")
+            st.markdown(
+                """
+                Nodes are shuffled with a seeded random generator. There is no
+                centrality formula; the stochastic order is repeated five times
+                within each network realization and averaged before inference.
+                """
+            )
+
+            st.markdown("#### Out-strength ranking")
+            st.latex(
+                r"s_i^{out}=\sum_j w_{ij}"
+            )
+            st.markdown(
+                """
+                - `w_ij` = weight sent from node `i` to node `j`.
+                - `s_i^out` = total outgoing weight of node `i`.
+                - nodes are removed in **descending** out-strength order.
+
+                The same strength definition is also used in the Yuan
+                assortativity framework. **Reference:** Yuan et al. (2021),
+                Section 2.
+                """
+            )
+
+            st.markdown("#### Weighted Slack ranking")
+            st.latex(
+                r"T_j=\sum_h w_{hj}"
+            )
+            st.latex(
+                r"\mathrm{Slack}_{ij}="
                 r"\frac{T_j-w_{ij}}{\theta T_j},"
                 r"\qquad \theta=0.70"
             )
+            st.latex(
+                r"\beta_{ij}="
+                r"\frac{w_{ij}}{s_i^{out}},"
+                r"\qquad"
+                r"\mathrm{Slack}_i^{W}="
+                r"\sum_j\beta_{ij}\mathrm{Slack}_{ij}"
+            )
             st.markdown(
                 """
-                where `T_j` is the total incoming weight of target `j`.
+                **Components**
 
-                Node Slack is the outgoing-weighted average of its edge Slack
-                values. **Lower Slack = more pivotal**, so weighted-Slack attack
-                removes the lowest-scoring nodes first.
+                - `T_j` = total incoming weight received by target node `j`.
+                - `w_ij` = weight of edge `i → j`.
+                - `θ = 0.70` = quota/Slack parameter used in this experiment.
+                - `β_ij` = share of node `i`'s outgoing strength carried by edge
+                  `i → j`.
+                - `Slack_ij` = edge-level remaining capacity relative to the
+                  quota-scaled target total.
+                - `Slack_i^W` = outgoing-weighted average Slack of node `i`.
 
-                **Matching rule:** node rankings are computed on the **LFR graph
-                only** and the same node order is then applied to its matched
-                NULL. This ensures that the two graphs face the same node
-                identities/order rather than independently optimized attacks.
+                **Ranking rule:** **lower Slack = more pivotal**, so nodes are
+                attacked in ascending `Slack_i^W`.
+
+                The notebook contains the implemented formula directly; it does
+                not attach a separate bibliographic reference to this function.
                 """
             )
 
+            st.info(
+                "Node rankings are computed on the **LFR graph only** and the "
+                "same node identity/order is applied to its matched NULL. This "
+                "implements the matched-node perturbation design because LFR and "
+                "NULL share the same node set."
+            )
+
+        # ----------------------------------------------------
+        # Redistribution
+        # ----------------------------------------------------
         with st.expander("2. Node removal with proportional redistribution"):
             st.markdown(
                 """
-                The node is still removed, using the same ranking rules, but the
-                experiment allows part of the lost flow to be rerouted.
+                Node `v` is removed, but weight that surviving source `u` was
+                sending to `v` is redistributed across `u`'s surviving outgoing
+                edges.
 
-                Suppose node `v` is removed and source node `u` had sent weight
-                `w_lost` to `v`. The lost weight is redistributed across `u`'s
-                surviving outgoing edges **proportionally to their current
-                weights**.
+                Let:
+                """
+            )
+            st.latex(
+                r"L_u=w_{uv}"
+            )
+            st.latex(
+                r"S_u="
+                r"\sum_{k\in N^{out}(u)\setminus\{v\}}w_{uk}"
+            )
+            st.latex(
+                r"w_{uk}^{\,new}="
+                r"w_{uk}"
+                r"+"
+                r"L_u\frac{w_{uk}}{S_u}"
+            )
+            st.markdown(
+                """
+                **Components**
 
-                Simple example:
+                - `L_u` = weight lost by source `u` because edge `u → v`
+                  disappears.
+                - `N^out(u)` = outgoing neighbours of `u`.
+                - `S_u` = total weight on `u`'s surviving outgoing edges.
+                - `w_uk / S_u` = existing proportional share of surviving edge
+                  `u → k`.
+                - the lost flow is reallocated using those shares.
 
-                - surviving outgoing weights from `u`: 6 and 4;
-                - lost weight to removed node: 10;
-                - surviving shares are 60% and 40%;
-                - redistributed weights added are 6 and 4.
+                Example: surviving outgoing weights 6 and 4 have shares 60% and
+                40%. If 10 units are lost, the two surviving edges receive +6
+                and +4.
 
-                This attack asks whether the network can preserve function when
-                connections are **reallocated after node loss**, rather than
-                simply destroyed.
-
-                **Important:** the surviving topology after node removal is the
-                same as ordinary node removal; redistribution changes weights,
-                not which surviving edges exist. Consequently, a purely
-                unweighted topological outcome may behave identically under
-                removal and redistribution.
+                The **topology after removal is the same as ordinary node
+                removal**; redistribution changes surviving weights, not
+                surviving edge identities. Therefore a purely unweighted
+                topological outcome can behave identically under removal and
+                redistribution.
                 """
             )
 
+        # ----------------------------------------------------
+        # Betweenness ranking
+        # ----------------------------------------------------
+        with st.expander("Betweenness rankings: what is being targeted?"):
+            st.markdown(
+                """
+                The notebook uses weighted shortest paths by converting edge
+                strength to effective distance:
+                """
+            )
+            st.latex(r"\ell_e=\frac{1}{w_e}")
+            st.markdown(
+                """
+                Hence a strong edge has a short effective distance.
+
+                **Node betweenness** (implemented in the notebook, although not
+                emphasized in the final 10 primary visual configurations) can
+                be interpreted as:
+                """
+            )
+            st.latex(
+                r"C_B(v)="
+                r"\sum_{\substack{s\ne t\\s,t\ne v}}"
+                r"\frac{\sigma_{st}(v)}{\sigma_{st}}"
+            )
+            st.markdown(
+                """
+                **Weighted directed edge betweenness**, which is used in the
+                final edge attacks, can be interpreted as:
+                """
+            )
+            st.latex(
+                r"C_B(e)="
+                r"\sum_{s\ne t}"
+                r"\frac{\sigma_{st}(e)}{\sigma_{st}}"
+            )
+            st.markdown(
+                """
+                **Components**
+
+                - `σ_st` = number of shortest directed weighted paths from
+                  source `s` to target `t`.
+                - `σ_st(v)` = number of those shortest paths passing through
+                  node `v`.
+                - `σ_st(e)` = number passing through edge `e`.
+                - shortest paths use `ℓ_e = 1/w_e`.
+                - the notebook requests the **normalized** NetworkX
+                  betweenness score.
+
+                **Ranking rule:** higher betweenness is attacked first because
+                those nodes/edges lie on more shortest directed routes.
+
+                **Implementation:** NetworkX `betweenness_centrality` and
+                `edge_betweenness_centrality`. The simulation notebook does not
+                cite a separate betweenness paper in this section.
+                """
+            )
+
+        # ----------------------------------------------------
+        # Progressive edge weakening
+        # ----------------------------------------------------
         with st.expander("3. Progressive ranked-edge weakening"):
             st.markdown(
                 """
-                Edges are ranked once. As attack intensity increases,
-                progressively more ranked edges enter the attacked set.
-
-                Every attacked edge is weakened once using:
+                Let the static edge ranking be `(e₁, e₂, …, e_m)`. At fraction
+                `f_k = k/m`, the first `k` ranked edges have their weight halved:
                 """
             )
-            st.latex(r"w_{\mathrm{new}}=0.5\,w_{\mathrm{old}}")
+            st.latex(
+                r"w_e^{(k)}="
+                r"\begin{cases}"
+                r"0.5\,w_e^{(0)}, & e\in\{e_1,\ldots,e_k\},\\"
+                r"w_e^{(0)}, & \text{otherwise.}"
+                r"\end{cases}"
+            )
+            st.latex(r"f_k=\frac{k}{m}")
             st.markdown(
                 """
-                The final visual library emphasizes:
+                The experiment weakens progressively more edges up to 80% of the
+                edge set.
 
-                **Random edge**
-                - random edge ordering.
+                The two primary rankings shown in the final dashboard are:
 
-                **Weighted edge betweenness**
-                - edges are ranked by weighted directed edge-betweenness
-                  centrality;
-                - higher betweenness is attacked first;
-                - shortest-path calculations use `distance = 1/weight`, so
-                  strong edges behave as shorter connections.
+                - **random edge order**;
+                - **weighted directed edge betweenness**, highest first.
 
-                The x-axis for this family is the **fraction of edges that have
-                been weakened**, up to 80%.
-
-                Unlike node attacks, generic edge rankings are computed
-                separately in LFR and NULL because rewiring changes the actual
-                edge identities.
+                Edge rankings are calculated **separately for LFR and NULL**
+                because the degree-preserving rewiring changes the actual edge
+                identities.
                 """
             )
 
+        # ----------------------------------------------------
+        # Fixed subset
+        # ----------------------------------------------------
         with st.expander("4. Fixed edge-subset deterioration"):
             st.markdown(
                 """
-                This attack changes **severity**, not the number of attacked
-                edges.
+                This attack holds the attacked edge identities fixed and changes
+                **severity**, not the number of attacked edges.
 
-                First select one fixed subset of edges. Then keep those same edge
-                identities throughout the curve and progressively reduce their
-                weights:
+                If `S` is the selected subset:
                 """
             )
-            st.latex(r"w_e(\alpha)=\alpha\,w_e(0)")
+            st.latex(
+                r"|S|="
+                r"\left\lceil0.25\,m\right\rceil"
+            )
+            st.latex(
+                r"w_e(\alpha)="
+                r"\begin{cases}"
+                r"\alpha w_e(0), & e\in S,\\"
+                r"w_e(0), & e\notin S,"
+                r"\end{cases}"
+            )
+            st.latex(r"\mathrm{severity}=1-\alpha")
             st.markdown(
                 """
-                The x-axis is deterioration severity:
+                **Components**
 
-                `severity = 1 − α`.
+                - `m` = number of edges in the current graph before attack.
+                - `S` = one fixed subset containing 25% of the edges.
+                - `α` = remaining-weight multiplier.
+                - `severity = 1−α` = deterioration shown on the x-axis.
 
-                Two subset rules are used:
+                Two subset-selection rules are used:
 
-                **Fixed random subset**
-                - choose a random fixed subset of edges.
+                - **fixed random subset**;
+                - **fixed weighted-betweenness subset:** the 25% of edges with
+                  the largest weighted directed edge-betweenness scores.
 
-                **Fixed weighted-betweenness subset**
-                - choose the top weighted-edge-betweenness edges.
-
-                The current experiment selects **25% of all edges** in each
-                graph. Historical file/ranking labels still contain `10pct` for
-                backward compatibility, but the actual parameter value used is
-                **0.25**.
-
-                LFR and NULL select their own edge subsets because their rewired
-                edge identities differ, while the requested subset fraction is
-                the same.
+                **Historical naming warning:** saved ranking names still contain
+                `10pct`, but the actual parameter used in the final experiment
+                is **0.25 = 25%**.
                 """
             )
 
-        with st.expander("Additional ranking rules implemented in the notebook"):
+        # ----------------------------------------------------
+        # Spectral ranking formulas
+        # ----------------------------------------------------
+        with st.expander("Advanced implemented rankings: spectral κ and γ sensitivity"):
             st.markdown(
                 """
-                The simulation code also implements additional node/edge
-                rankings such as node out-degree, node weighted betweenness,
-                edge weight, and spectral κ/γ edge-sensitivity rankings.
+                These rankings are implemented in the simulation notebook but
+                are not among the main edge-ranking combinations emphasized in
+                the compact final dashboard.
 
-                The compact final dashboard intentionally focuses on the
-                pre-specified attack/ranking combinations used for the primary
-                robustness comparisons rather than exposing every implemented
-                exploratory ranking.
+                For a directed edge `j → i`, the perturbation model is:
+                """
+            )
+            st.latex(
+                r"A(\varepsilon)=A+\varepsilon E_{ij}"
+            )
+
+            st.markdown("#### γ sensitivity")
+            st.latex(
+                r"\frac{\partial\gamma}{\partial\varepsilon}="
+                r"\operatorname{Re}"
+                r"\left[\overline{y_i}(x_i-x_j)\right]"
+            )
+            st.markdown(
+                """
+                - `x` = right eigenvector of the Laplacian eigenvalue defining γ.
+                - `y` = corresponding left eigenvector, normalized so
+                  `yᴴx = 1`.
+                - positive sensitivity means strengthening the edge locally
+                  increases γ; therefore weakening it tends to decrease γ to
+                  first order.
+
+                **Reference:** Wu et al. (2026), Section 4.4, Equation (8).
+                """
+            )
+
+            st.markdown("#### κ sensitivity")
+            st.latex(
+                r"\frac{\partial\kappa}{\partial\varepsilon}"
+                r"="
+                r"\xi_i y_i(y_i-y_j)"
+                r"+"
+                r"\frac{1}{2}y^TDCy"
+            )
+            st.latex(
+                r"C=\Xi L-L^T\Xi,"
+                r"\qquad"
+                r"D=\operatorname{diag}(\xi')\Xi^{-1},"
+                r"\qquad"
+                r"\xi'=\frac{\partial\xi}{\partial\varepsilon}"
+            )
+            st.markdown(
+                """
+                - first term = local directed cut-energy contribution;
+                - second term = global stationary-redistribution contribution;
+                - large positive sensitivity is prioritized by a
+                  damage-oriented weakening attack.
+
+                **Reference:** Wu et al. (2026), Theorem 1 / Equation (5),
+                Equations (6)–(7), and the single-edge formulation discussed in
+                the notebook.
                 """
             )
 
         st.subheader("Attack-family cheat sheet")
-
         attack_table = pd.DataFrame(
             [
                 [
@@ -1084,28 +1494,28 @@ def page_methods(data, visual_index):
                     "Which nodes disappear?",
                     "Fraction of nodes removed",
                     "Random; weighted Slack; out-strength",
-                    "Node deleted",
+                    "Delete ranked nodes",
                 ],
                 [
                     "Node redistribution",
-                    "Can lost flow be reallocated after node loss?",
+                    "Can lost flow be rerouted after node loss?",
                     "Fraction of nodes removed",
                     "Same node rankings",
-                    "Node deleted + incoming lost weight rerouted",
+                    "Delete node + proportionally reroute lost incoming flow",
                 ],
                 [
                     "Progressive edge weakening",
                     "What if increasingly many important edges weaken?",
                     "Fraction of edges weakened",
                     "Random edge; weighted edge betweenness",
-                    "Each attacked edge × 0.5",
+                    "Top-k attacked edges × 0.5",
                 ],
                 [
-                    "Fixed edge-subset deterioration",
-                    "What if one fixed critical subset progressively deteriorates?",
+                    "Fixed subset deterioration",
+                    "What if one fixed subset progressively deteriorates?",
                     "Deterioration severity",
-                    "Fixed random 25%; fixed top-betweenness 25%",
-                    "Same selected edges scaled by α",
+                    "Random 25%; top-betweenness 25%",
+                    "Same selected edges × α",
                 ],
             ],
             columns=[
@@ -1126,17 +1536,13 @@ def page_methods(data, visual_index):
 
         st.markdown(
             """
-            The NULL is designed to answer:
+            The NULL asks whether an observed robustness pattern is specifically
+            associated with organized LFR community architecture or could arise
+            simply from the degree sequence and edge-weight distribution.
 
-            > Is an observed robustness pattern specifically associated with
-            > organized LFR community architecture, or could it arise simply
-            > from the degree sequence and edge-weight distribution?
-
-            For each LFR realization, one matched NULL is created by directed
-            edge swaps of the form:
+            For two directed edges:
             """
         )
-
         st.latex(
             r"(a\rightarrow b,\;c\rightarrow d)"
             r"\mapsto"
@@ -1151,12 +1557,11 @@ def page_methods(data, visual_index):
                 ### Preserved exactly
 
                 - same node set;
-                - same node attributes, including planted community labels;
-                - each node's exact in-degree;
-                - each node's exact out-degree;
+                - same node attributes, including planted labels;
+                - exact in-degree of every node;
+                - exact out-degree of every node;
                 - same number of edges;
-                - same multiset of edge weights;
-                - consequently, same total weight and weight distribution.
+                - exact same multiset of edge weights.
                 """
             )
 
@@ -1166,46 +1571,40 @@ def page_methods(data, visual_index):
                 ### Intentionally destroyed
 
                 - planted community topology;
-                - alignment between topology and planted communities;
-                - original topology–weight association.
+                - original topology/community alignment;
+                - original topology/weight association.
 
-                The original weights are shuffled across the rewired edges after
-                the degree-preserving rewiring.
+                After rewiring, the original weight multiset is shuffled over the
+                rewired edges.
                 """
             )
 
         st.markdown(
             """
-            Self-loops and duplicate edges are avoided during rewiring. The
-            experiment targets approximately `10 × |E|` accepted directed swaps,
-            with a larger maximum-attempt budget to obtain substantial
-            randomization.
+            Self-loops and duplicate edges are rejected. The implementation
+            targets approximately `10 × |E|` accepted directed swaps, subject to
+            a larger maximum-attempt budget.
             """
         )
 
         st.info(
-            "The NULL retains the planted community labels as node attributes, "
-            "but the rewiring destroys the topology that originally supported "
-            "those communities. Thus a NULL plotted under the row labelled "
-            "`Qw ≈ 0.690` means 'the NULL matched to the LFR regime with "
-            "Qw ≈ 0.690'; it does not mean the NULL itself still has Qw = 0.690."
+            "A NULL displayed under a row labelled, for example, `Qw ≈ 0.690` "
+            "means 'the NULL matched to the LFR regime whose realized Qw was "
+            "≈ 0.690'. It does **not** mean that the rewired NULL itself retains "
+            "Qw = 0.690."
         )
 
         st.subheader("Why matching matters")
-
+        st.latex(
+            r"\Delta AUC_i="
+            r"AUC_{LFR,i}-AUC_{NULL,i}"
+        )
         st.markdown(
             """
-            Because each LFR has a specifically constructed control, the paired
-            analysis compares:
-
-            `AUC_LFR,i − AUC_NULL,i`
-
-            for each realization `i`.
-
-            This removes much of the between-realization variability that would
-            otherwise obscure the question of interest. The paired design handles
-            dependence **within** LFR–NULL pairs; independence is required
-            **between** the 40 matched pairs.
+            Each LFR realization has its own structural control. The paired
+            design therefore uses the within-pair difference above. Dependence
+            inside an LFR–NULL pair is intentional and handled by the paired
+            test; independence is required between the 40 matched pairs.
             """
         )
 
@@ -1217,15 +1616,15 @@ def page_methods(data, visual_index):
 
         software_table = pd.DataFrame(
             [
-                ["Official LFR C++ benchmark", "Generate weighted-directed benchmark networks"],
-                ["NetworkX", "Directed graph representation, connectivity, shortest paths, betweenness, assortativity, Louvain"],
+                ["Official weighted-directed LFR C++ benchmark", "Generate community-structured weighted-directed networks"],
+                ["NetworkX", "Directed graph structure, components, reachability, Dijkstra paths, betweenness, assortativity, Louvain"],
                 ["NumPy", "Numerical arrays, random generators, numerical summaries"],
                 ["pandas", "Long-form result tables, aggregation and persistence"],
                 ["SciPy", "Spectral linear algebra and classical statistical tests"],
                 ["statsmodels", "Welch ANOVA and Tukey HSD support"],
-                ["Matplotlib", "Generation of the scientific figures"],
-                ["Google Colab + Drive", "Long simulation execution and persistent pair-level checkpoints"],
-                ["Streamlit", "Interactive dashboard for the compact final outputs"],
+                ["Matplotlib", "Scientific figures"],
+                ["Google Colab + Drive", "Long simulation execution and persistent checkpoints"],
+                ["Streamlit", "Interactive dashboard"],
             ],
             columns=["Tool", "Role in the workflow"],
         )
@@ -1233,34 +1632,41 @@ def page_methods(data, visual_index):
 
         st.markdown(
             """
-            ### Methodological references used by the implementation
+            ### References explicitly used for the principal formulas / methods
 
-            - **Lancichinetti, Fortunato & Radicchi (2008)** — LFR benchmark
-              family for community-structured synthetic networks.
-            - **Lancichinetti & Fortunato (2009)** — directed/weighted LFR
-              benchmark extension.
-            - **Newman (2003), _Mixing patterns in networks_** — categorical
-              assortativity mixing-matrix formulation. The project's
-              weighted-directed community assortativity adapts this logic by
-              accumulating edge weights instead of edge counts.
-            - **Yuan, Yan & Zhang (2021), _Assortativity Measures for Weighted
-              and Directed Networks_** — weighted directed strength
-              assortativity. The implemented default is out–in strength
-              assortativity.
-            - **Wu et al. (2026), _Spectral Sensitivity of Directed Weighted
-              Networks: Why Weakening Edges May Trigger Synchronization_** —
-              spectral κ/γ formulation and edge-sensitivity framework used in
-              the notebook.
-            - **Blondel, Guillaume, Lambiotte & Lefebvre (2008)** — Louvain
-              community-detection method; the implementation uses NetworkX's
-              weighted Louvain routine with resolution 1.0.
+            - **Newman, M. E. J. (2003).** *Mixing patterns in networks.*
+              Categorical assortativity and the mixing-matrix formula used by
+              both planted community-assortativity outcomes.
+            - **Yuan, Y., Yan, J. & Zhang, P. (2021).** *Assortativity Measures
+              for Weighted and Directed Networks.* Weighted directed Pearson
+              strength assortativity; the experiment uses the out–in version.
+            - **Wu, X., Liu, X., Zhang, C., Chen, T. & Lu, W. (2026).**
+              *Spectral Sensitivity of Directed Weighted Networks: Why
+              Weakening Edges May Trigger Synchronization.* Spectral κ, γ and
+              their edge sensitivities.
+            - **Blondel, V. D., Guillaume, J.-L., Lambiotte, R. & Lefebvre,
+              E. (2008).** *Fast unfolding of communities in large networks.*
+              Louvain community detection used for the dynamic-community
+              sensitivity analysis.
+            - **Lancichinetti, A., Fortunato, S. & Radicchi, F. (2008).**
+              *Benchmark graphs for testing community detection algorithms.*
+              LFR benchmark family.
+
+            ### Implementation-only definitions
+
+            GSCC ratio, directed reachability, weighted global efficiency and
+            NetworkX betweenness are implemented directly with NetworkX graph
+            algorithms in the notebook. The simulation notebook does not attach
+            a separate bibliographic citation to those particular diagnostic
+            functions; the formulas shown in this guide document exactly how
+            they are calculated in this experiment.
             """
         )
 
         st.caption(
-            "The dashboard is explanatory documentation of the implemented "
-            "workflow. For a manuscript, use the full bibliographic entries "
-            "from the paper's reference list."
+            "For manuscript use, copy the complete bibliographic entries from "
+            "the paper/reference manager rather than relying on the abbreviated "
+            "dashboard citations."
         )
 
 
